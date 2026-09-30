@@ -9,23 +9,30 @@ class RoadEdge:
     minutes: float
     blocked: bool=False
 
-def shortest_minutes(start: str, goal: str, edges: list[RoadEdge]) -> float:
-    if start==goal: return 0.0
+def route(start: str, goal: str, edges: list[RoadEdge]) -> tuple[float, tuple[str, ...]]:
+    if start==goal: return 0.0,(start,)
     adj: dict[str,list[tuple[str,float]]]={}
     for e in edges:
         if e.blocked: continue
         if e.minutes < 0: raise ValueError("negative travel time")
         adj.setdefault(e.a,[]).append((e.b,e.minutes)); adj.setdefault(e.b,[]).append((e.a,e.minutes))
-    pq=[(0.0,start)]; best={start:0.0}
+    pq=[(0.0,start)]; best={start:0.0}; prev={}
     while pq:
         d,u=heapq.heappop(pq)
         if d!=best.get(u): continue
-        if u==goal: return d
+        if u==goal:
+            path=[goal]; n=goal
+            while n!=start: n=prev[n]; path.append(n)
+            path.reverse()
+            return d,tuple(path)
         for v,w in adj.get(u,[]):
             nd=d+w
             if nd < best.get(v,float('inf')):
-                best[v]=nd; heapq.heappush(pq,(nd,v))
-    return float('inf')
+                best[v]=nd; prev[v]=u; heapq.heappush(pq,(nd,v))
+    return float('inf'),()
+
+def shortest_minutes(start: str, goal: str, edges: list[RoadEdge]) -> float:
+    return route(start,goal,edges)[0]
 
 def choose_crew(job_node: str, crews: list[tuple[str,str,float]], edges: list[RoadEdge], required_skill: str, skills: dict[str,set[str]]):
     candidates=[]
